@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Downloader - Premium Youtube Videos & Audio</title>
+    <meta name="description" content="Download YouTube videos in 4K or extract high-quality MP3 audio with our fast, modern downloader.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-elements">
+        <div class="blob purple-blob"></div>
+        <div class="blob pink-blob"></div>
+    </div>
+
+    <div class="container">
+        <header class="glass-panel text-center">
+            <h1><i class="fa-brands fa-youtube"></i> Nexus Downloader</h1>
+            <p>Download content in up to 4K quality or extract MP3 audio instantly.</p>
+        </header>
+
+        <main class="glass-panel">
+            <div class="input-group">
+                <i class="fa-solid fa-link input-icon"></i>
+                <input type="text" id="urlInput" placeholder="Paste YouTube link here..." autocomplete="off">
+                <button id="fetchBtn" class="btn btn-primary">
+                    <span class="btn-text">Extract</span>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
+            </div>
+            
+            <div id="errorBox" class="error-box hidden">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorText">Error occurred</span>
+            </div>
+
+            <div id="loadingBox" class="loading-box hidden">
+                <div class="spinner"></div>
+                <p>Analyzing video... This might take a few seconds.</p>
+            </div>
+
+            <div id="resultBox" class="result-box hidden">
+                <div class="video-preview">
+                    <img id="thumbnail" src="" alt="Video Thumbnail">
+                    <div class="video-info">
+                        <h2 id="videoTitle">Video Title</h2>
+                        <span id="videoDuration" class="badge">00:00</span>
+                    </div>
+                </div>
+
+                <div class="download-section">
+                    <h3>Export Options</h3>
+
+                    <div class="action-grid">
+                        <div class="action-card">
+                            <h4><i class="fa-solid fa-video" style="color: var(--primary);"></i> Video Format (MP4)</h4>
+                            <p>Download the original video with perfectly synced audio in your preferred device resolution.</p>
+                            <div class="custom-select-wrapper" style="margin-bottom: 15px;">
+                                <select id="videoFormatSelect" class="custom-select">
+                                    <!-- Options injected via JS -->
+                                </select>
+                            </div>
+                            <button id="downloadVideoBtn" class="btn btn-action" style="margin-top: auto;">
+                                <i class="fa-solid fa-download"></i> Download Video
+                            </button>
+                        </div>
+                        
+                        <div class="action-card">
+                            <h4><i class="fa-solid fa-music" style="color: var(--secondary);"></i> Audio Only (MP3)</h4>
+                            <p>Extract the highest quality 192kbps audio stream natively. Perfect for offline music or podcasts.</p>
+                            <button id="downloadAudioBtn" class="btn btn-primary" style="position: static; width: 100%; margin-top: auto; padding: 16px 24px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 14px;">
+                                <i class="fa-solid fa-music"></i> Download Audio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="progressBox" class="progress-box hidden">
+                <h3 id="progressStatus">Downloading...</h3>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <p id="progressPercentage">0%</p>
+                <div id="downloadLinkBox" class="hidden">
+                    <p class="success-text"><i class="fa-solid fa-check-circle"></i> Saving to your device!</p>
+                    <button id="downloadAnotherBtn" class="btn btn-success">Download Another</button>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Built for learning purposes. Not affiliated with YouTube.</p>
+        </footer>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
