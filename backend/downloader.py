@@ -18,7 +18,8 @@ def get_video_info(url: str):
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,
-        'skip_download': True
+        'skip_download': True,
+        'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -72,6 +73,7 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'quiet': True,
             'no_warnings': True,
             'concurrent_fragment_downloads': 10,
+            'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
         }
         
         def hooked(d):
