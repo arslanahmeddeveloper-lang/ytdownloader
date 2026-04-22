@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+COOKIES_FILE = os.path.join(os.path.dirname(__file__), "cookies.txt")
+
 # In-memory dictionary to store task progress
 # Format: { task_id: {"status": "downloading", "progress": 0, "filename": "", "error": ""} }
 tasks = {}
@@ -21,6 +23,8 @@ def get_video_info(url: str):
         'skip_download': True,
         'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
     }
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
@@ -75,6 +79,8 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'concurrent_fragment_downloads': 10,
             'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
         }
+        if os.path.exists(COOKIES_FILE):
+            ydl_opts['cookiefile'] = COOKIES_FILE
         
         def hooked(d):
             if d['status'] == 'downloading':
