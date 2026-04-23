@@ -58,8 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch Video Info
     const fetchMetadata = async () => {
         const url = urlInput.value.trim();
-        if (!url) {
-            showError("Please enter a valid YouTube URL.");
+        if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+            showError("Please enter a valid video URL.");
             return;
         }
 
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     urlInput.addEventListener('input', () => {
         const val = urlInput.value.trim();
-        if (val.match(/(youtube\.com\/watch\?v=|youtu\.be\/)/)) {
+        if (val.startsWith('http://') || val.startsWith('https://')) {
             if (currentVideoUrl !== val) {
                 fetchMetadata();
             }

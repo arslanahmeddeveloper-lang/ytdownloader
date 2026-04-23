@@ -38,14 +38,16 @@ def get_video_info(url: str):
                     h = f.get('height') or 0
                     
                     display_res = ''
-                    if h == 144 or '144p' in note: display_res = '144p'
-                    elif h == 360 or '360p' in note: display_res = '360p'
-                    elif h == 480 or '480p' in note: display_res = '480p'
-                    elif h == 720 or '720p' in note: display_res = '720p'
-                    elif h == 1080 or '1080p' in note: display_res = '1080p'
-                    elif h == 1440 or '1440p' in note: display_res = '1440p'
-                    elif h == 2160 or '2160p' in note or '4k' in note: display_res = '4K'
-                    else: continue
+                    if h:
+                        if h >= 2160: display_res = '4K'
+                        else: display_res = f"{h}p"
+                    elif 'p' in note:
+                        for w in note.split():
+                            if 'p' in w and w[:-1].isdigit():
+                                display_res = w
+                                break
+                    if not display_res:
+                        display_res = note if note else 'Quality'
                     
                     form = {
                         "format_id": f.get('format_id'),
