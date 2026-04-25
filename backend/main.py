@@ -67,3 +67,13 @@ def get_file(task_id: str, background_tasks: BackgroundTasks):
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 os.makedirs(FRONTEND_DIR, exist_ok=True)
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+# This is for ping activation
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'OK',
+        'message': 'Your API is running',
+        'timestamp': datetime.utcnow().isoformat()
+    })
