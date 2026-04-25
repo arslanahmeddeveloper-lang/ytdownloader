@@ -3,12 +3,26 @@ import uuid
 import asyncio
 import yt_dlp
 import glob
+import itertools
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-COOKIES_FILE = os.path.join(os.path.dirname(__file__), "cookies.txt")
+PROXIES = [
+    "http://shumzmajid:DBZgnJUSSV@96.62.111.183:50100",
+    "http://shumzmajid:DBZgnJUSSV@151.247.188.170:50100",
+    "http://shumzmajid:DBZgnJUSSV@193.169.218.174:50100",
+    "http://shumzmajid:DBZgnJUSSV@85.208.11.31:50100",
+    "http://shumzmajid:DBZgnJUSSV@209.101.255.173:50100"
+]
+proxy_pool = itertools.cycle(PROXIES)
+proxy_lock = threading.Lock()
+
+def get_next_proxy():
+    with proxy_lock:
+        return next(proxy_pool)
 
 # In-memory dictionary to store task progress
 # Format: { task_id: {"status": "downloading", "progress": 0, "filename": "", "error": ""} }
@@ -21,10 +35,9 @@ def get_video_info(url: str):
         'no_warnings': True,
         'extract_flat': False,
         'skip_download': True,
-        'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
+        'source_address': '0.0.0.0'
     }
-    if os.path.exists(COOKIES_FILE):
-        ydl_opts['cookiefile'] = COOKIES_FILE
+    ydl_opts['proxy'] = get_next_proxy()
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
@@ -35,32 +48,48 @@ def get_video_info(url: str):
                 if f.get('vcodec') != 'none':
                     filesize = f.get('filesize') or f.get('filesize_approx') or 0
                     note = (f.get('format_note') or '').lower()
+                    w = f.get('width') or 0
                     h = f.get('height') or 0
+                    res_val = min(w, h) if w and h else (h or w)
                     
                     display_res = ''
-                    if h:
-                        if h >= 2160: display_res = '4K'
-                        else: display_res = f"{h}p"
+                    if res_val:
+                        if res_val >= 2160: display_res = '4K'
+                        elif res_val >= 1440: display_res = '1440p'
+                        elif res_val >= 1080: display_res = '1080p'
+                        elif res_val >= 720: display_res = '720p'
+                        elif res_val >= 480: display_res = '480p'
+                        elif res_val >= 360: display_res = '360p'
+                        elif res_val >= 240: display_res = '240p'
+                        elif res_val >= 144: display_res = '144p'
                     elif 'p' in note:
-                        for w in note.split():
-                            if 'p' in w and w[:-1].isdigit():
-                                display_res = w
+                        for word in note.split():
+                            if 'p' in word and word[:-1].isdigit():
+                                p_val = int(word[:-1])
+                                if p_val >= 2160: display_res = '4K'
+                                elif p_val >= 1440: display_res = '1440p'
+                                elif p_val >= 1080: display_res = '1080p'
+                                elif p_val >= 720: display_res = '720p'
+                                elif p_val >= 480: display_res = '480p'
+                                elif p_val >= 360: display_res = '360p'
+                                elif p_val >= 240: display_res = '240p'
+                                elif p_val >= 144: display_res = '144p'
                                 break
-                    if not display_res:
-                        display_res = note if note else 'Quality'
                     
-                    form = {
-                        "format_id": f.get('format_id'),
-                        "ext": f.get('ext'),
-                        "resolution": display_res,
-                        "vcodec": f.get('vcodec'),
-                        "acodec": f.get('acodec'),
-                        "filesize": filesize,
-                        "fps": f.get('fps'),
-                        "has_video": True,
-                        "has_audio": f.get('acodec') != 'none'
-                    }
-                    extracted_formats.append(form)
+                    TARGET_RES = ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '4K']
+                    if display_res in TARGET_RES:
+                        form = {
+                            "format_id": f.get('format_id'),
+                            "ext": f.get('ext'),
+                            "resolution": display_res,
+                            "vcodec": f.get('vcodec'),
+                            "acodec": f.get('acodec'),
+                            "filesize": filesize,
+                            "fps": f.get('fps'),
+                            "has_video": True,
+                            "has_audio": f.get('acodec') != 'none'
+                        }
+                        extracted_formats.append(form)
                     
         return {
             "title": info.get('title', 'Unknown Title'),
@@ -78,11 +107,14 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'outtmpl': outtmpl,
             'quiet': True,
             'no_warnings': True,
-            'concurrent_fragment_downloads': 10,
-            'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}
+            'source_address': '0.0.0.0',
+            'concurrent_fragment_downloads': 30,
+            'http_chunk_size': 10485760,
+            'buffersize': 1024 * 1024 * 5,
+            'nocheckcertificate': True,
+            'socket_timeout': 15,
         }
-        if os.path.exists(COOKIES_FILE):
-            ydl_opts['cookiefile'] = COOKIES_FILE
+        ydl_opts['proxy'] = get_next_proxy()
         
         def hooked(d):
             if d['status'] == 'downloading':

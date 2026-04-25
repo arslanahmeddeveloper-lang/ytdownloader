@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -23,13 +23,13 @@
     <div class="container">
         <header class="glass-panel text-center">
             <h1><i class="fa-solid fa-download"></i> Nexus Downloader</h1>
-            <p>Download from YouTube, Instagram, TikTok and 1000+ other platforms in 4K, 1440p, 1080p, 720p, 480p, 360p, and 144p.</p>
+            <p>Universal High-Quality Media Downloader</p>
         </header>
 
         <main class="glass-panel">
             <div class="input-group">
                 <i class="fa-solid fa-link input-icon"></i>
-                <input type="text" id="urlInput" placeholder="Paste video link here (YouTube, TikTok, IG...)" autocomplete="off">
+                <input type="text" id="urlInput" placeholder="Paste video link here..." autocomplete="off">
                 <button id="fetchBtn" class="btn btn-primary">
                     <span class="btn-text">Extract</span>
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -56,29 +56,17 @@
                 </div>
 
                 <div class="download-section">
-                    <h3>Export Options</h3>
-
-                    <div class="action-grid">
-                        <div class="action-card">
-                            <h4><i class="fa-solid fa-video" style="color: var(--primary);"></i> Video Format (MP4)</h4>
-                            <p>Download the original video with perfectly synced audio in your preferred device resolution.</p>
-                            <div class="custom-select-wrapper" style="margin-bottom: 15px;">
-                                <select id="videoFormatSelect" class="custom-select">
-                                    <!-- Options injected via JS -->
-                                </select>
-                            </div>
-                            <button id="downloadVideoBtn" class="btn btn-action" style="margin-top: auto;">
-                                <i class="fa-solid fa-download"></i> Download Video
-                            </button>
-                        </div>
-                        
-                        <div class="action-card">
-                            <h4><i class="fa-solid fa-music" style="color: var(--secondary);"></i> Audio Only (MP3)</h4>
-                            <p>Extract the highest quality 192kbps audio stream natively. Perfect for offline music or podcasts.</p>
-                            <button id="downloadAudioBtn" class="btn btn-primary" style="position: static; width: 100%; margin-top: auto; padding: 16px 24px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 14px;">
-                                <i class="fa-solid fa-music"></i> Download Audio
-                            </button>
-                        </div>
+                    <h3 class="section-title">Select quality</h3>
+                    <div id="qualityGrid" class="quality-grid">
+                        <!-- Quality boxes injected via JS -->
+                    </div>
+                    <div class="action-buttons-row">
+                        <button id="downloadVideoBtn" class="btn btn-red">
+                            <i class="fa-solid fa-video"></i> Download Video
+                        </button>
+                        <button id="downloadAudioBtn" class="btn btn-dark">
+                            <i class="fa-solid fa-music"></i> Download MP3
+                        </button>
                     </div>
                 </div>
             </div>
@@ -97,10 +85,10 @@
         </main>
         
         <footer>
-            <p>Supports over 1000+ websites. Built for learning purposes. Not affiliated with any video platform.</p>
+            <p>&copy; Nexus Media. All rights reserved.</p>
         </footer>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=3"></script>
 </body>
 </html>

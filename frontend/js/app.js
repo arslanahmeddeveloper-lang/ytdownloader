@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const thumbnail = document.getElementById('thumbnail');
     const videoTitle = document.getElementById('videoTitle');
     const videoDuration = document.getElementById('videoDuration');
-    const videoFormatSelect = document.getElementById('videoFormatSelect');
+    const qualityGrid = document.getElementById('qualityGrid');
     
     const downloadVideoBtn = document.getElementById('downloadVideoBtn');
     
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentVideoUrl = '';
     let currentDownloadType = 'video';
+    let selectedFormatId = '';
 
     function formatTime(seconds) {
         if (!seconds) return '00:00';
@@ -87,40 +88,73 @@ document.addEventListener('DOMContentLoaded', () => {
             videoTitle.textContent = info.title;
             videoDuration.textContent = formatTime(info.duration);
 
-            // Populate Select (filter for likely usable video variants)
-            videoFormatSelect.innerHTML = '';
+            // Populate Quality Grid
+            qualityGrid.innerHTML = '';
+            selectedFormatId = '';
             
-            // Deduplicate formats by resolution explicitly
+            // Deduplicate to show only distinct resolutions, prioritizing MP4 format
             const uniqueFormats = {};
             info.formats.forEach(f => {
-                if(f.has_video && f.resolution) {
+                if(f.has_video && f.resolution && f.resolution !== "watermarked") {
                     const key = f.resolution;
-                    // Prefer formats with audio if available directly, or highest filesize if both lack audio
-                    if(!uniqueFormats[key] || (!uniqueFormats[key].has_audio && f.has_audio) || (uniqueFormats[key].filesize < f.filesize)) {
+                    const isMP4 = (f.ext && f.ext.toLowerCase() === 'mp4');
+                    
+                    if (!uniqueFormats[key]) {
                         uniqueFormats[key] = f;
+                    } else {
+                        const existing = uniqueFormats[key];
+                        const existingIsMP4 = (existing.ext && existing.ext.toLowerCase() === 'mp4');
+                        
+                        if (isMP4 && !existingIsMP4) {
+                            uniqueFormats[key] = f;
+                        } else if (isMP4 === existingIsMP4) {
+                             if ((f.filesize || 0) > (existing.filesize || 0)) {
+                                 uniqueFormats[key] = f;
+                             }
+                        }
                     }
                 }
             });
 
-            // If empty, fallback to basic options
+            // Sort formats by resolution (highest to lowest)
             const processedFormats = Object.values(uniqueFormats).sort((a,b) => {
-                const resA = parseInt(a.resolution) || 0;
-                const resB = parseInt(b.resolution) || 0;
-                return resB - resA; // Highest quality first
+                let resA = parseInt(a.resolution) || 0;
+                let resB = parseInt(b.resolution) || 0;
+                if (a.resolution === '4K') resA = 2160;
+                if (b.resolution === '4K') resB = 2160;
+                return resB - resA;
             });
 
             if (processedFormats.length === 0) {
-                 const opt = document.createElement('option');
-                 opt.value = "";
-                 opt.textContent = "Best Quality Output (Auto MP4)";
-                 videoFormatSelect.appendChild(opt);
+                 qualityGrid.innerHTML = '<p style="color: var(--text-muted); padding: 10px;">Best quality will be selected automatically.</p>';
+                 selectedFormatId = "";
             } else {
-                processedFormats.forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f.format_id;
+                processedFormats.forEach((f, index) => {
+                    const box = document.createElement('div');
+                    box.className = 'quality-box';
+                    
+                    // Select the best quality by default
+                    if (index === 0) {
+                        box.classList.add('selected');
+                        selectedFormatId = f.format_id;
+                    }
+                    
                     const size = formatBytes(f.filesize);
-                    opt.textContent = `${f.resolution} (MP4) - ${size}`;
-                    videoFormatSelect.appendChild(opt);
+                    const fps = f.fps ? ` ${f.fps}fps` : '';
+                    const ext = f.ext ? f.ext.toUpperCase() : 'MP4';
+                    
+                    box.innerHTML = `
+                        <span class="res" style="font-size: 1.1rem; font-weight: 700; color: white; display: block; margin-bottom: 4px;">${f.resolution}</span>
+                        <span class="size" style="font-size: 0.85rem; display: block;">${size} • ${ext}</span>
+                    `;
+                    
+                    box.addEventListener('click', () => {
+                        document.querySelectorAll('.quality-box').forEach(b => b.classList.remove('selected'));
+                        box.classList.add('selected');
+                        selectedFormatId = f.format_id;
+                    });
+                    
+                    qualityGrid.appendChild(box);
                 });
             }
 
@@ -228,8 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     downloadVideoBtn.addEventListener('click', () => {
-        const formatId = videoFormatSelect.value;
-        initDownload(formatId, false);
+        initDownload(selectedFormatId, false);
     });
 
     const downloadAudioBtn = document.getElementById('downloadAudioBtn');
