@@ -10,6 +10,32 @@ from concurrent.futures import ThreadPoolExecutor
 DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+def cleanup_downloads_if_needed():
+    max_size_bytes = 10 * 1024 * 1024 * 1024 # 10 GB
+    target_size_bytes = 9 * 1024 * 1024 * 1024 # 9 GB
+    
+    total_size = 0
+    files = []
+    for f in os.listdir(DOWNLOAD_DIR):
+        file_path = os.path.join(DOWNLOAD_DIR, f)
+        if os.path.isfile(file_path):
+            size = os.path.getsize(file_path)
+            total_size += size
+            files.append((file_path, os.path.getmtime(file_path), size))
+            
+    if total_size > max_size_bytes:
+        # Sort files by oldest first
+        files.sort(key=lambda x: x[1])
+        for file_path, _, size in files:
+            try:
+                os.remove(file_path)
+                total_size -= size
+                if total_size <= target_size_bytes:
+                    break
+            except Exception:
+                pass
+
+
 PROXIES = [
     "http://shumzmajid:DBZgnJUSSV@96.62.111.183:50100",
     "http://shumzmajid:DBZgnJUSSV@151.247.188.170:50100",
@@ -30,76 +56,93 @@ tasks = {}
 executor = ThreadPoolExecutor(max_workers=5)
 
 def get_video_info(url: str):
-    ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'extract_flat': False,
-        'skip_download': True,
-        'source_address': '0.0.0.0'
-    }
-    ydl_opts['proxy'] = get_next_proxy()
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        
-        # Filter formats
-        extracted_formats = []
-        if 'formats' in info:
-            for f in info['formats']:
-                if f.get('vcodec') != 'none':
-                    filesize = f.get('filesize') or f.get('filesize_approx') or 0
-                    note = (f.get('format_note') or '').lower()
-                    w = f.get('width') or 0
-                    h = f.get('height') or 0
-                    res_val = min(w, h) if w and h else (h or w)
-                    
-                    display_res = ''
-                    if res_val:
-                        if res_val >= 2160: display_res = '4K'
-                        elif res_val >= 1440: display_res = '1440p'
-                        elif res_val >= 1080: display_res = '1080p'
-                        elif res_val >= 720: display_res = '720p'
-                        elif res_val >= 480: display_res = '480p'
-                        elif res_val >= 360: display_res = '360p'
-                        elif res_val >= 240: display_res = '240p'
-                        elif res_val >= 144: display_res = '144p'
-                    elif 'p' in note:
-                        for word in note.split():
-                            if 'p' in word and word[:-1].isdigit():
-                                p_val = int(word[:-1])
-                                if p_val >= 2160: display_res = '4K'
-                                elif p_val >= 1440: display_res = '1440p'
-                                elif p_val >= 1080: display_res = '1080p'
-                                elif p_val >= 720: display_res = '720p'
-                                elif p_val >= 480: display_res = '480p'
-                                elif p_val >= 360: display_res = '360p'
-                                elif p_val >= 240: display_res = '240p'
-                                elif p_val >= 144: display_res = '144p'
-                                break
-                    
-                    TARGET_RES = ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '4K']
-                    if display_res in TARGET_RES:
-                        form = {
-                            "format_id": f.get('format_id'),
-                            "ext": f.get('ext'),
-                            "resolution": display_res,
-                            "vcodec": f.get('vcodec'),
-                            "acodec": f.get('acodec'),
-                            "filesize": filesize,
-                            "fps": f.get('fps'),
-                            "has_video": True,
-                            "has_audio": f.get('acodec') != 'none'
-                        }
-                        extracted_formats.append(form)
-                    
-        return {
-            "title": info.get('title', 'Unknown Title'),
-            "thumbnail": info.get('thumbnail'),
-            "duration": info.get('duration', 0),
-            "formats": extracted_formats
-        }
+    max_retries = 3
+    last_error_msg = ""
+    
+    for attempt in range(max_retries):
+        try:
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,
+                'skip_download': True,
+                'source_address': '0.0.0.0'
+            }
+            ydl_opts['proxy'] = get_next_proxy()
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                # Filter formats
+                extracted_formats = []
+                if 'formats' in info:
+                    for f in info['formats']:
+                        if f.get('vcodec') != 'none':
+                            filesize = f.get('filesize') or f.get('filesize_approx') or 0
+                            note = (f.get('format_note') or '').lower()
+                            w = f.get('width') or 0
+                            h = f.get('height') or 0
+                            res_val = min(w, h) if w and h else (h or w)
+                            
+                            display_res = ''
+                            if res_val:
+                                if res_val >= 2160: display_res = '4K'
+                                elif res_val >= 1440: display_res = '1440p'
+                                elif res_val >= 1080: display_res = '1080p'
+                                elif res_val >= 720: display_res = '720p'
+                                elif res_val >= 480: display_res = '480p'
+                                elif res_val >= 360: display_res = '360p'
+                                elif res_val >= 240: display_res = '240p'
+                                elif res_val >= 144: display_res = '144p'
+                            elif 'p' in note:
+                                for word in note.split():
+                                    if 'p' in word and word[:-1].isdigit():
+                                        p_val = int(word[:-1])
+                                        if p_val >= 2160: display_res = '4K'
+                                        elif p_val >= 1440: display_res = '1440p'
+                                        elif p_val >= 1080: display_res = '1080p'
+                                        elif p_val >= 720: display_res = '720p'
+                                        elif p_val >= 480: display_res = '480p'
+                                        elif p_val >= 360: display_res = '360p'
+                                        elif p_val >= 240: display_res = '240p'
+                                        elif p_val >= 144: display_res = '144p'
+                                        break
+                            
+                            TARGET_RES = ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '4K']
+                            if display_res in TARGET_RES:
+                                form = {
+                                    "format_id": f.get('format_id'),
+                                    "ext": f.get('ext'),
+                                    "resolution": display_res,
+                                    "vcodec": f.get('vcodec'),
+                                    "acodec": f.get('acodec'),
+                                    "filesize": filesize,
+                                    "fps": f.get('fps'),
+                                    "has_video": True,
+                                    "has_audio": f.get('acodec') != 'none'
+                                }
+                                extracted_formats.append(form)
+                            
+                return {
+                    "title": info.get('title', 'Unknown Title'),
+                    "thumbnail": info.get('thumbnail'),
+                    "duration": info.get('duration', 0),
+                    "formats": extracted_formats
+                }
+                
+        except Exception as e:
+            error_msg = str(e).lower()
+            last_error_msg = str(e)
+            if "sign in to confirm" in error_msg and "bot" in error_msg:
+                continue
+            else:
+                raise e
+
+    if last_error_msg:
+        raise Exception("Please reload, your internet is very slow")
 
 def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool):
     try:
+        cleanup_downloads_if_needed()
         tasks[task_id] = {"status": "starting", "progress": 0, "filename": "", "error": None}
         
         outtmpl = os.path.join(DOWNLOAD_DIR, f"{task_id}_%(title)s.%(ext)s")

@@ -1,4 +1,4 @@
-# Nexus YouTube Downloader
+# YouTube Downloader
 
 A modern, production-ready, full-stack YouTube Downloader web application. 
 No third-party YouTube API used—powered exclusively by `yt-dlp` and `FFmpeg`.

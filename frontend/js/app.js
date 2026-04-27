@@ -144,8 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const ext = f.ext ? f.ext.toUpperCase() : 'MP4';
                     
                     box.innerHTML = `
-                        <span class="res" style="font-size: 1.1rem; font-weight: 700; color: white; display: block; margin-bottom: 4px;">${f.resolution}</span>
-                        <span class="size" style="font-size: 0.85rem; display: block;">${size} • ${ext}</span>
+                        <span class="res">${f.resolution}</span>
+                        <span class="size">${size} • ${ext}</span>
                     `;
                     
                     box.addEventListener('click', () => {
