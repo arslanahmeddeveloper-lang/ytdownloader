@@ -49,7 +49,18 @@ def get_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return {"success": True, "data": status}
 
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
+import httpx
+
+@app.get("/api/thumbnail")
+async def get_thumbnail(url: str):
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, follow_redirects=True)
+            return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+    except Exception:
+        # Fallback to a blank image or 404
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
 
 @app.get("/api/file/{task_id}")
 def get_file(task_id: str, background_tasks: BackgroundTasks):

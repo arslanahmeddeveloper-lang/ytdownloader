@@ -84,7 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Populate UI
             const info = data.data;
-            thumbnail.src = info.thumbnail;
+            if (info.thumbnail) {
+                thumbnail.src = `/api/thumbnail?url=${encodeURIComponent(info.thumbnail)}`;
+            } else {
+                thumbnail.src = '';
+            }
             videoTitle.textContent = info.title;
             videoDuration.textContent = formatTime(info.duration);
 
