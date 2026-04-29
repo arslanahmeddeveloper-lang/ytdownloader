@@ -163,6 +163,8 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'buffersize': 1024 * 1024 * 5,
             'nocheckcertificate': True,
             'socket_timeout': 15,
+            'external_downloader': 'aria2c',
+            'external_downloader_args': ['-c', '-j', '10', '-x', '10', '-s', '10', '-k', '5M']
         }
         ydl_opts['proxy'] = get_next_proxy()
         

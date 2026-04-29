@@ -12,7 +12,7 @@ WORKDIR /app
 # Install system dependencies
 # ffmpeg is highly recommended/required for yt-dlp processing
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get install -y --no-install-recommends ffmpeg aria2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
