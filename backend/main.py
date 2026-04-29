@@ -49,6 +49,7 @@ def get_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return {"success": True, "data": status}
 
+import urllib.parse
 from fastapi.responses import FileResponse, RedirectResponse, Response
 import httpx
 
@@ -73,7 +74,8 @@ def get_file(task_id: str, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=404, detail="File not found on disk")
         
     basename = os.path.basename(filename)
-    return RedirectResponse(url=f"/downloads/{basename}")
+    encoded_basename = urllib.parse.quote(basename)
+    return RedirectResponse(url=f"/downloads/{encoded_basename}")
 
 DOWNLOADS_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOADS_DIR, exist_ok=True)
