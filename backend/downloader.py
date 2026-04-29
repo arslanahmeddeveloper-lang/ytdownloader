@@ -166,7 +166,6 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'external_downloader': 'aria2c',
             'external_downloader_args': ['-c', '-j', '10', '-x', '10', '-s', '10', '-k', '5M']
         }
-        ydl_opts['proxy'] = get_next_proxy()
         
         def hooked(d):
             if d['status'] == 'downloading':
@@ -197,25 +196,36 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
                 ydl_opts['format'] = 'bestvideo+bestaudio/best'
                 ydl_opts['merge_output_format'] = 'mp4'
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            
-            search_pattern = os.path.join(DOWNLOAD_DIR, f"{task_id}_*.*")
-            actual_files = glob.glob(search_pattern)
-            if actual_files:
-                final_files = [f for f in actual_files if not f.endswith('.part') and not f.endswith('.ytdl')]
-                if final_files:
-                    filename = final_files[0]
-                else:
-                    filename = actual_files[0]
-            else:
-                filename = ydl.prepare_filename(info)
-                if audio_only:
-                    base, _ = os.path.splitext(filename)
-                    filename = f"{base}.mp3"
+        def do_download(opts):
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=True)
                 
-            tasks[task_id]['filename'] = filename
-            tasks[task_id]['status'] = 'completed'
+                search_pattern = os.path.join(DOWNLOAD_DIR, f"{task_id}_*.*")
+                actual_files = glob.glob(search_pattern)
+                if actual_files:
+                    final_files = [f for f in actual_files if not f.endswith('.part') and not f.endswith('.ytdl')]
+                    if final_files:
+                        filename = final_files[0]
+                    else:
+                        filename = actual_files[0]
+                else:
+                    filename = ydl.prepare_filename(info)
+                    if audio_only:
+                        base, _ = os.path.splitext(filename)
+                        filename = f"{base}.mp3"
+                return filename
+
+        try:
+            # Try native download first
+            filename = do_download(ydl_opts)
+        except Exception as e:
+            # Fallback to proxy
+            tasks[task_id]['status'] = 'downloading'
+            ydl_opts['proxy'] = get_next_proxy()
+            filename = do_download(ydl_opts)
+            
+        tasks[task_id]['filename'] = filename
+        tasks[task_id]['status'] = 'completed'
 
     except Exception as e:
         tasks[task_id]['status'] = 'error'

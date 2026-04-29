@@ -49,6 +49,8 @@ def get_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return {"success": True, "data": status}
 
+from fastapi.responses import FileResponse, RedirectResponse
+
 @app.get("/api/file/{task_id}")
 def get_file(task_id: str, background_tasks: BackgroundTasks):
     status = downloader.get_task_status(task_id)
@@ -59,10 +61,12 @@ def get_file(task_id: str, background_tasks: BackgroundTasks):
     if not filename or not os.path.exists(filename):
         raise HTTPException(status_code=404, detail="File not found on disk")
         
-    # background_tasks.add_task(downloader.delete_task_file, task_id)
-    
-    media_t = 'audio/mpeg' if filename.endswith('.mp3') else 'video/mp4'
-    return FileResponse(path=filename, filename=os.path.basename(filename), media_type=media_t)
+    basename = os.path.basename(filename)
+    return RedirectResponse(url=f"/downloads/{basename}")
+
+DOWNLOADS_DIR = os.path.join(os.path.dirname(__file__), "downloads")
+os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
 
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 os.makedirs(FRONTEND_DIR, exist_ok=True)
