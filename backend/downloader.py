@@ -122,9 +122,16 @@ def get_video_info(url: str):
                                 }
                                 extracted_formats.append(form)
                             
+                thumbnail_url = info.get('thumbnail')
+                if not thumbnail_url and info.get('thumbnails'):
+                    for t in reversed(info['thumbnails']):
+                        if t.get('url'):
+                            thumbnail_url = t.get('url')
+                            break
+                            
                 return {
                     "title": info.get('title', 'Unknown Title'),
-                    "thumbnail": info.get('thumbnail'),
+                    "thumbnail": thumbnail_url,
                     "duration": info.get('duration', 0),
                     "formats": extracted_formats
                 }
