@@ -49,19 +49,7 @@ def get_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     return {"success": True, "data": status}
 
-import urllib.parse
-from fastapi.responses import FileResponse, RedirectResponse, Response
-import httpx
-
-@app.get("/api/thumbnail")
-async def get_thumbnail(url: str):
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(url, follow_redirects=True)
-            return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
-    except Exception:
-        # Fallback to a blank image or 404
-        raise HTTPException(status_code=404, detail="Thumbnail not found")
+from fastapi.responses import FileResponse, Response
 
 @app.get("/api/file/{task_id}")
 def get_file(task_id: str, background_tasks: BackgroundTasks):
@@ -73,13 +61,17 @@ def get_file(task_id: str, background_tasks: BackgroundTasks):
     if not filename or not os.path.exists(filename):
         raise HTTPException(status_code=404, detail="File not found on disk")
         
-    basename = os.path.basename(filename)
-    encoded_basename = urllib.parse.quote(basename)
-    return RedirectResponse(url=f"/downloads/{encoded_basename}")
-
-DOWNLOADS_DIR = os.path.join(os.path.dirname(__file__), "downloads")
-os.makedirs(DOWNLOADS_DIR, exist_ok=True)
-app.mount("/downloads", StaticFiles(directory=DOWNLOADS_DIR), name="downloads")
+    media_t = 'audio/mpeg' if filename.endswith('.mp3') else 'video/mp4'
+    
+    if os.environ.get('USE_NGINX_ACCEL') == 'true':
+        basename = os.path.basename(filename)
+        headers = {
+            "X-Accel-Redirect": f"/protected_downloads/{basename}",
+            "Content-Disposition": f'attachment; filename="{basename}"'
+        }
+        return Response(headers=headers, media_type=media_t)
+        
+    return FileResponse(path=filename, filename=os.path.basename(filename), media_type=media_t)
 
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 os.makedirs(FRONTEND_DIR, exist_ok=True)
