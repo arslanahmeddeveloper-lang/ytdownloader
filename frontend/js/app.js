@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentVideoUrl = '';
     let currentDownloadType = 'video';
     let selectedFormatId = '';
+    let selectedFormatUrl = '';
+    const directDownloadBtn = document.getElementById('directDownloadBtn');
 
     function formatTime(seconds) {
         if (!seconds) return '00:00';
@@ -132,6 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (processedFormats.length === 0) {
                  qualityGrid.innerHTML = '<p style="color: var(--text-muted); padding: 10px;">Best quality will be selected automatically.</p>';
                  selectedFormatId = "";
+                 selectedFormatUrl = "";
+                 directDownloadBtn.classList.add('hidden');
             } else {
                 processedFormats.forEach((f, index) => {
                     const box = document.createElement('div');
@@ -141,6 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (index === 0) {
                         box.classList.add('selected');
                         selectedFormatId = f.format_id;
+                        selectedFormatUrl = f.direct_url || '';
+                        if (selectedFormatUrl) {
+                            directDownloadBtn.classList.remove('hidden');
+                        } else {
+                            directDownloadBtn.classList.add('hidden');
+                        }
                     }
                     
                     const size = formatBytes(f.filesize);
@@ -156,6 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.querySelectorAll('.quality-box').forEach(b => b.classList.remove('selected'));
                         box.classList.add('selected');
                         selectedFormatId = f.format_id;
+                        selectedFormatUrl = f.direct_url || '';
+                        if (selectedFormatUrl) {
+                            directDownloadBtn.classList.remove('hidden');
+                        } else {
+                            directDownloadBtn.classList.add('hidden');
+                        }
                     });
                     
                     qualityGrid.appendChild(box);
@@ -273,6 +289,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (downloadAudioBtn) {
         downloadAudioBtn.addEventListener('click', () => {
             initDownload("", true);
+        });
+    }
+
+    if (directDownloadBtn) {
+        directDownloadBtn.addEventListener('click', () => {
+            if (selectedFormatUrl) {
+                // Try to trigger download or open in new tab
+                const a = document.createElement('a');
+                a.href = selectedFormatUrl;
+                a.target = '_blank';
+                // Use the title if possible
+                a.download = (videoTitle.textContent || 'video') + '.mp4';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
         });
     }
 

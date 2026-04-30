@@ -96,34 +96,53 @@ def get_video_info(url: str):
                                 elif res_val >= 360: display_res = '360p'
                                 elif res_val >= 240: display_res = '240p'
                                 elif res_val >= 144: display_res = '144p'
+                                else: display_res = f"{res_val}p"
                             elif 'p' in note:
                                 for word in note.split():
                                     if 'p' in word and word[:-1].isdigit():
-                                        p_val = int(word[:-1])
-                                        if p_val >= 2160: display_res = '4K'
-                                        elif p_val >= 1440: display_res = '1440p'
-                                        elif p_val >= 1080: display_res = '1080p'
-                                        elif p_val >= 720: display_res = '720p'
-                                        elif p_val >= 480: display_res = '480p'
-                                        elif p_val >= 360: display_res = '360p'
-                                        elif p_val >= 240: display_res = '240p'
-                                        elif p_val >= 144: display_res = '144p'
+                                        display_res = word
                                         break
+                                        
+                            if not display_res:
+                                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                                    display_res = 'Video + Audio'
+                                elif f.get('vcodec') != 'none':
+                                    display_res = 'Video'
+                                elif f.get('acodec') != 'none':
+                                    display_res = 'Audio'
+                                else:
+                                    display_res = 'Media'
                             
-                            TARGET_RES = ['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '4K']
-                            if display_res in TARGET_RES:
-                                form = {
-                                    "format_id": f.get('format_id'),
-                                    "ext": f.get('ext'),
-                                    "resolution": display_res,
-                                    "vcodec": f.get('vcodec'),
-                                    "acodec": f.get('acodec'),
-                                    "filesize": filesize,
-                                    "fps": f.get('fps'),
-                                    "has_video": True,
-                                    "has_audio": f.get('acodec') != 'none'
-                                }
-                                extracted_formats.append(form)
+                            # Skip formats that are only fragments/dash unless they are the only ones, but for simplicity allow them
+                            # and rely on yt-dlp to merge them during download.
+                            form = {
+                                "format_id": f.get('format_id'),
+                                "ext": f.get('ext'),
+                                "resolution": display_res,
+                                "vcodec": f.get('vcodec'),
+                                "acodec": f.get('acodec'),
+                                "filesize": filesize,
+                                "fps": f.get('fps'),
+                                "has_video": f.get('vcodec') != 'none',
+                                "has_audio": f.get('acodec') != 'none',
+                                "direct_url": f.get('url')
+                            }
+                            # Deduplicate simple overlapping names or low quality if needed, but returning all is safer for all platforms
+                            extracted_formats.append(form)
+                            
+                if not extracted_formats and info.get('url'):
+                    extracted_formats.append({
+                        "format_id": "best",
+                        "ext": info.get('ext', 'mp4'),
+                        "resolution": "Original",
+                        "vcodec": info.get('vcodec', 'unknown'),
+                        "acodec": info.get('acodec', 'unknown'),
+                        "filesize": info.get('filesize') or info.get('filesize_approx') or 0,
+                        "fps": info.get('fps'),
+                        "has_video": True,
+                        "has_audio": True,
+                        "direct_url": info.get('url')
+                    })
                             
                 thumbnail_url = info.get('thumbnail')
                 if not thumbnail_url and info.get('thumbnails'):
@@ -160,9 +179,9 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'quiet': True,
             'no_warnings': True,
             'source_address': '0.0.0.0',
-            'concurrent_fragment_downloads': 30,
-            'http_chunk_size': 10485760,
-            'buffersize': 1024 * 1024 * 5,
+            'concurrent_fragment_downloads': 16,
+            'external_downloader': 'aria2c',
+            'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
             'nocheckcertificate': True,
             'socket_timeout': 15,
             'impersonate': ImpersonateTarget(client='chrome')
@@ -170,12 +189,18 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
         
         def hooked(d):
             if d['status'] == 'downloading':
+                # With aria2c, this hook might not fire as granularly or at all for progress.
+                # So we just update status to downloading.
+                tasks[task_id]['status'] = 'downloading'
                 total = d.get('total_bytes') or d.get('total_bytes_estimate')
                 if total:
                     downloaded = d.get('downloaded_bytes', 0)
                     progress = (downloaded / total) * 100
                     tasks[task_id]['progress'] = round(progress, 2)
-                    tasks[task_id]['status'] = 'downloading'
+                else:
+                    # Fake progress for aria2c since it doesn't always report to hook
+                    if tasks[task_id]['progress'] < 95:
+                        tasks[task_id]['progress'] += 0.5
             elif d['status'] == 'finished':
                 tasks[task_id]['progress'] = 100
                 tasks[task_id]['status'] = 'processing'
