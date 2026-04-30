@@ -66,7 +66,8 @@ def get_video_info(url: str):
                 'no_warnings': True,
                 'extract_flat': False,
                 'skip_download': True,
-                'source_address': '0.0.0.0'
+                'source_address': '0.0.0.0',
+                'impersonate': 'chrome'
             }
             if attempt > 0:
                 ydl_opts['proxy'] = get_next_proxy()
@@ -163,8 +164,7 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'buffersize': 1024 * 1024 * 5,
             'nocheckcertificate': True,
             'socket_timeout': 15,
-            'external_downloader': 'aria2c',
-            'external_downloader_args': ['-c', '-j', '10', '-x', '10', '-s', '10', '-k', '5M']
+            'impersonate': 'chrome'
         }
         
         def hooked(d):

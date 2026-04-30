@@ -73,6 +73,17 @@ def get_file(task_id: str, background_tasks: BackgroundTasks):
         
     return FileResponse(path=filename, filename=os.path.basename(filename), media_type=media_t)
 
+import httpx
+
+@app.get("/api/thumbnail")
+async def proxy_thumbnail(url: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(url, headers={"Referer": "https://www.youtube.com/"})
+            return Response(content=resp.content, media_type=resp.headers.get("Content-Type", "image/jpeg"))
+        except:
+            raise HTTPException(status_code=400, detail="Could not fetch thumbnail")
+
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 os.makedirs(FRONTEND_DIR, exist_ok=True)
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
