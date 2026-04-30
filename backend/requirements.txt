@@ -3,3 +3,4 @@ uvicorn
 yt-dlp
 pydantic
 httpx
+curl_cffi<0.15.0

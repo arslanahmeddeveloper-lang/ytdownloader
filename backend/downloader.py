@@ -6,6 +6,7 @@ import glob
 import itertools
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -67,7 +68,7 @@ def get_video_info(url: str):
                 'extract_flat': False,
                 'skip_download': True,
                 'source_address': '0.0.0.0',
-                'impersonate': 'chrome'
+                'impersonate': ImpersonateTarget(client='chrome')
             }
             if attempt > 0:
                 ydl_opts['proxy'] = get_next_proxy()
@@ -164,7 +165,7 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'buffersize': 1024 * 1024 * 5,
             'nocheckcertificate': True,
             'socket_timeout': 15,
-            'impersonate': 'chrome'
+            'impersonate': ImpersonateTarget(client='chrome')
         }
         
         def hooked(d):
