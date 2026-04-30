@@ -68,9 +68,19 @@ def get_video_info(url: str):
                 'extract_flat': False,
                 'skip_download': True,
                 'source_address': '0.0.0.0',
-                'impersonate': ImpersonateTarget(client='chrome')
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-us,en;q=0.5',
+                    'Sec-Fetch-Mode': 'navigate'
+                }
             }
-            if attempt > 0:
+            if attempt == 0:
+                ydl_opts['impersonate'] = ImpersonateTarget(client='chrome')
+            elif attempt == 1:
+                ydl_opts['proxy'] = get_next_proxy()
+                ydl_opts['impersonate'] = ImpersonateTarget(client='safari')
+            else:
                 ydl_opts['proxy'] = get_next_proxy()
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -173,7 +183,7 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
         cleanup_downloads_if_needed()
         tasks[task_id] = {"status": "starting", "progress": 0, "filename": "", "error": None}
         
-        outtmpl = os.path.join(DOWNLOAD_DIR, f"{task_id}_%(title)s.%(ext)s")
+        outtmpl = os.path.join(DOWNLOAD_DIR, f"{task_id}_%(title).50s.%(ext)s")
         ydl_opts_base = {
             'outtmpl': outtmpl,
             'quiet': True,
@@ -184,7 +194,12 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
             'external_downloader_args': ['-x', '16', '-s', '16', '-k', '1M'],
             'nocheckcertificate': True,
             'socket_timeout': 15,
-            'impersonate': ImpersonateTarget(client='chrome')
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate'
+            }
         }
         
         def hooked(d):
@@ -225,9 +240,14 @@ def download_video_sync(task_id: str, url: str, format_id: str, audio_only: bool
         success = False
         last_error = None
         
-        for attempt in range(2):
+        for attempt in range(3):
             ydl_opts = ydl_opts_base.copy()
-            if attempt == 1:
+            if attempt == 0:
+                ydl_opts['impersonate'] = ImpersonateTarget(client='chrome')
+            elif attempt == 1:
+                ydl_opts['proxy'] = get_next_proxy()
+                ydl_opts['impersonate'] = ImpersonateTarget(client='safari')
+            else:
                 ydl_opts['proxy'] = get_next_proxy()
                 
             try:
