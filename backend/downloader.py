@@ -138,9 +138,8 @@ def get_video_info(url: str):
                 }
                 
         except Exception as e:
-            error_msg = str(e).lower()
             last_error_msg = str(e)
-            if "sign in to confirm" in error_msg and "bot" in error_msg:
+            if attempt < max_retries - 1:
                 continue
             else:
                 raise e
